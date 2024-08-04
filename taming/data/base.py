@@ -21,10 +21,11 @@ class ConcatDatasetWithIndex(ConcatDataset):
 
 
 class ImagePaths(Dataset):
-    def __init__(self, paths, size=None, random_crop=False, labels=None, augment=False):
+    def __init__(self, paths, size=None, random_crop=False, labels=None, augment=False, gray=True):
         self.size = size
         self.random_crop = random_crop
         self.augment = augment
+        self.gray = gray
         self.labels = dict() if labels is None else labels
         self.labels["file_path_"] = paths
         self._length = len(paths)
@@ -41,22 +42,31 @@ class ImagePaths(Dataset):
 
         if self.augment:
             # Add data aug transformations
-            self.data_augmentation = A.Compose([
-                A.GaussianBlur(p=0.1),
-                A.OneOf([
-                    A.HueSaturationValue (p=0.3),
-                    A.ToGray(p=0.3),
-                    A.ChannelShuffle(p=0.3)
-                ], p=0.3)
-            ])
+            if self.gray:
+                self.data_augmentation = A.Compose([
+                    A.GaussianBlur(p=0.1),
+                ])
+            else:
+                self.data_augmentation = A.Compose([
+                    A.GaussianBlur(p=0.1),
+                    A.OneOf([
+                        A.HueSaturationValue (p=0.3),
+                        A.ToGray(p=0.3),
+                        A.ChannelShuffle(p=0.3)
+                    ], p=0.3)
+                ])
 
     def __len__(self):
         return self._length
 
     def preprocess_image(self, image_path):
         image = Image.open(image_path)
-        if not image.mode == "RGB":
-            image = image.convert("RGB")
+        if self.gray:
+            if not image.mode == "L":
+                image = image.convert("L")
+        else:
+            if not image.mode == "RGB": 
+                image = image.convert("RGB")
         image = np.array(image).astype(np.uint8)
         image = self.preprocessor(image=image)["image"]
         if self.augment:
