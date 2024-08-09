@@ -34,7 +34,7 @@ model:
 
         perceptual_weight: 0.2
         ocr_perceptual_weight: 1.0
-
+    monitor: val/rec_loss_epoch
 
 data:
   target: main.DataModuleFromConfig
@@ -42,7 +42,7 @@ data:
     batch_size: 4
     num_workers: 4
     train:
-      target: taming.data.custom.CustomTrain
+      target: taming.data.custom.CustomOnMemoryTrain
       params:
         training_images_list_file: LSDSQ_480_gray/LSDSQ_480_gray_img_train.txt
         size: 480 #기준 사이즈(작으면 확대 크면 크롭)
@@ -50,7 +50,7 @@ data:
         random_crop: True
         augment: True
     validation:
-      target: taming.data.custom.CustomTest
+      target: taming.data.custom.CustomOnMemoryTest
       params:
         test_images_list_file: LSDSQ_480_gray/LSDSQ_480_gray_img_test.txt
         size: 480
@@ -58,7 +58,7 @@ data:
         random_crop: False
         augment: False
     test:
-      target: taming.data.custom.CustomTest
+      target: taming.data.custom.CustomOnMemoryTest
       params:
         test_images_list_file: LSDSQ_480_gray/LSDSQ_480_gray_img_test.txt
         size: 480
