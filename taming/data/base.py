@@ -3,6 +3,7 @@ import numpy as np
 import albumentations as A
 from PIL import Image
 from torch.utils.data import Dataset, ConcatDataset
+from tqdm import tqdm
 
 
 class ConcatDatasetWithIndex(ConcatDataset):
@@ -81,7 +82,40 @@ class ImagePaths(Dataset):
             example[k] = self.labels[k][i]
         return example
 
-
+class OnMemoryImagePaths(ImagePaths):
+    def __init__(self, paths, size=None, random_crop=False, labels=None, augment=False, gray=True):
+        super().__init__(paths, size, random_crop, labels, augment, gray)
+        self.images = self.load_images(self.labels["file_path_"])
+        
+    def load_images(self, paths):
+        images = []
+        print("Loading Images on the Memory...")
+        for path in tqdm(paths):
+            image = Image.open(path)
+            if self.gray:
+                if not image.mode == "L":
+                    image = image.convert("L")
+            else:
+                if not image.mode == "RGB": 
+                    image = image.convert("RGB")
+            image = np.array(image).astype(np.uint8)
+            images.append(image)
+        return images
+    
+    def preprocess_image(self, image):
+        image = self.preprocessor(image=image)["image"]
+        if self.augment:
+            image = self.data_augmentation(image=image)['image']
+        image = (image/127.5 - 1.0).astype(np.float32)
+        return image
+    
+    def __getitem__(self, i):
+        example = dict()
+        example["image"] = self.preprocess_image(self.images[i])
+        for k in self.labels:
+            example[k] = self.labels[k][i]
+        return example
+    
 class NumpyPaths(ImagePaths):
     def preprocess_image(self, image_path):
         image = np.load(image_path).squeeze(0)  # 3 x 1024 x 1024
