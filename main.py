@@ -486,7 +486,6 @@ if __name__ == "__main__":
                 "dirpath": ckptdir,
                 "filename": "epoch={epoch:04}-step={step:07}-val_rec_loss_epoch={val/rec_loss_epoch:.3f}",
                 "auto_insert_metric_name": False,
-                "every_n_train_steps": 5000,
                 "verbose": True,
                 "save_last": True,
             }
