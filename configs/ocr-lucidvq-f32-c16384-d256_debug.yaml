@@ -1,9 +1,17 @@
 model:
   base_learning_rate: 4.5e-04
-  target: taming.models.vqgan.VQModel
+  target: taming.models.vqgan.VQLucidrainsModel
   params:
     embed_dim: 256 # quant dim
     n_embed: 16384 # n_codebook
+    kmeans_init: True
+    kmeans_iters: 10
+    use_cosine_sim: True
+    threshold_ema_dead_code: 1
+    accept_image_fmap: True
+    orthogonal_reg_weight: 10
+    orthogonal_reg_max_codes: 128
+    orthogonal_reg_active_codes_only: False
     ddconfig:
       double_z: false
       z_channels: 256 # enc out channels
@@ -27,7 +35,7 @@ model:
       params:
         disc_conditional: false
         disc_in_channels: 1
-        disc_start: 1000000
+        disc_start: 100000
         disc_weight: 0.75
         disc_num_layers: 2
         codebook_weight: 1.0
@@ -39,21 +47,21 @@ model:
 data:
   target: main.DataModuleFromConfig
   params:
-    batch_size: 4
-    num_workers: 4
+    batch_size: 17
+    num_workers: 12
     train:
       target: taming.data.custom.CustomOnMemoryTrain
       params:
-        training_images_list_file: LSDSQ_480_gray/LSDSQ_480_gray_img_train.txt
-        size: 480 #기준 사이즈(작으면 확대 크면 크롭)
+        training_images_list_file: LSDSQ_480_gray/_LSDSQ_480_gray_img_train_debug.txt
+        size: 256 #기준 사이즈(작으면 확대 크면 크롭)
         gray: True
         random_crop: True
         augment: True
     validation:
       target: taming.data.custom.CustomOnMemoryTest
       params:
-        test_images_list_file: LSDSQ_480_gray/LSDSQ_480_gray_img_test.txt
-        size: 480
+        test_images_list_file: LSDSQ_480_gray/_LSDSQ_480_gray_img_test_debug.txt
+        size: 256
         gray: True
         random_crop: False
         augment: False
@@ -61,7 +69,7 @@ data:
       target: taming.data.custom.CustomOnMemoryTest
       params:
         test_images_list_file: LSDSQ_480_gray/LSDSQ_480_gray_img_test.txt
-        size: 480
+        size: 256
         gray: True
         random_crop: False
         augment: False

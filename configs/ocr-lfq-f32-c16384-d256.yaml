@@ -1,9 +1,11 @@
 model:
   base_learning_rate: 4.5e-04
-  target: taming.models.vqgan.VQModel
+  target: taming.models.vqgan.LFQModel
   params:
     embed_dim: 256 # quant dim
     n_embed: 16384 # n_codebook
+    entropy_loss_weight: 0.1
+    diversity_gamma: 1.
     ddconfig:
       double_z: false
       z_channels: 256 # enc out channels
@@ -27,10 +29,10 @@ model:
       params:
         disc_conditional: false
         disc_in_channels: 1
-        disc_start: 1000000
+        disc_start: 300000
         disc_weight: 0.75
         disc_num_layers: 2
-        codebook_weight: 1.0
+        codebook_weight: 0.5 #1.0
 
         perceptual_weight: 0.2
         ocr_perceptual_weight: 1.0
@@ -40,7 +42,7 @@ data:
   target: main.DataModuleFromConfig
   params:
     batch_size: 4
-    num_workers: 4
+    num_workers: 32
     train:
       target: taming.data.custom.CustomOnMemoryTrain
       params:

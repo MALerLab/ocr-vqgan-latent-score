@@ -1,6 +1,6 @@
 model:
-  base_learning_rate: 4.5e-04
-  target: taming.models.vqgan.VQModel
+  base_learning_rate: 4.5e-05
+  target: taming.models.vqgan.EMAVQ
   params:
     embed_dim: 256 # quant dim
     n_embed: 16384 # n_codebook
@@ -23,24 +23,24 @@ model:
       - 16
       dropout: 0.0
     lossconfig:
-      target: taming.modules.losses.vqperceptual.VQLPIPSWithDiscriminatorOCR
+      target: taming.modules.losses.vqperceptual.VQLPIPSWithDiscriminator #OCR
       params:
         disc_conditional: false
         disc_in_channels: 1
-        disc_start: 1000000
+        disc_start: 200000
         disc_weight: 0.75
         disc_num_layers: 2
         codebook_weight: 1.0
 
         perceptual_weight: 0.2
-        ocr_perceptual_weight: 1.0
+        # ocr_perceptual_weight: 1.0
     monitor: val/rec_loss_epoch
 
 data:
   target: main.DataModuleFromConfig
   params:
     batch_size: 4
-    num_workers: 4
+    num_workers: 32
     train:
       target: taming.data.custom.CustomOnMemoryTrain
       params:

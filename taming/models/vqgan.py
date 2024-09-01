@@ -8,6 +8,9 @@ from taming.modules.diffusionmodules.model import Encoder, Decoder
 from taming.modules.vqvae.quantize import VectorQuantizer2 as VectorQuantizer
 from taming.modules.vqvae.quantize import GumbelQuantize
 from taming.modules.vqvae.quantize import EMAVectorQuantizer
+from vector_quantize_pytorch import VectorQuantize as VectorQuantizeLucidrains
+from vector_quantize_pytorch import LFQ as LookupFreeQunatizer
+from vector_quantize_pytorch import FSQ as FiniteScalarQuantizer
 
 import numpy as np
 import os
@@ -373,7 +376,7 @@ class GumbelVQ(VQModel):
 
     def validation_step(self, batch, batch_idx):
         x = self.get_input(batch, self.image_key)
-        xrec, qloss = self(x, return_pred_indices=True)
+        xrec, qloss = self(x) #, return_pred_indices=True)
         aeloss, log_dict_ae = self.loss(qloss, x, xrec, 0, self.global_step,
                                         last_layer=self.get_last_layer(), split="val")
 
@@ -384,8 +387,8 @@ class GumbelVQ(VQModel):
                  prog_bar=True, logger=True, on_step=False, on_epoch=True, sync_dist=True)
         self.log("val/aeloss", aeloss,
                  prog_bar=True, logger=True, on_step=False, on_epoch=True, sync_dist=True)
-        self.log_dict(log_dict_ae)
-        self.log_dict(log_dict_disc)
+        # self.log_dict(log_dict_ae)
+        # self.log_dict(log_dict_disc)
         return self.log_dict
 
     def log_images(self, batch, **kwargs):
@@ -442,3 +445,172 @@ class EMAVQ(VQModel):
         opt_disc = torch.optim.Adam(self.loss.discriminator.parameters(),
                                     lr=lr, betas=(0.5, 0.9))
         return [opt_ae, opt_disc], []                                           
+    
+class VQLucidrainsModel(VQModel):
+    def __init__(self,
+                 ddconfig,
+                 lossconfig,
+                 n_embed,
+                 embed_dim,
+                 ckpt_path=None,
+                 ignore_keys=[],
+                 image_key="image",
+                 colorize_nlabels=None,
+                 monitor=None,
+                 remap=None,
+                 kmeans_init = True,
+                 kmeans_iters = 1,
+                 use_cosine_sim = True, 
+                 threshold_ema_dead_code = 1, 
+                 accept_image_fmap = True,
+                 orthogonal_reg_weight = 10,
+                 orthogonal_reg_max_codes = 128,
+                 orthogonal_reg_active_codes_only = False,
+                 ):
+
+        z_channels = ddconfig["z_channels"]
+        super().__init__(ddconfig,
+                         lossconfig,
+                         n_embed,
+                         embed_dim,
+                         ckpt_path=None,
+                         ignore_keys=ignore_keys,
+                         image_key=image_key,
+                         colorize_nlabels=colorize_nlabels,
+                         monitor=monitor
+                         )
+
+        self.loss.n_classes = n_embed
+        self.vocab_size = n_embed
+
+        self.quantize = VectorQuantizeLucidrains(
+            dim = embed_dim,
+            codebook_size = n_embed,
+            kmeans_init = kmeans_init,
+            kmeans_iters = kmeans_iters,
+            use_cosine_sim = use_cosine_sim, 
+            threshold_ema_dead_code = threshold_ema_dead_code,
+            accept_image_fmap = accept_image_fmap,
+            orthogonal_reg_weight = orthogonal_reg_weight,                 # in paper, they recommended a value of 10
+            orthogonal_reg_max_codes = orthogonal_reg_max_codes,             # this would randomly sample from the codebook for the orthogonal regularization loss, for limiting memory usage
+            orthogonal_reg_active_codes_only = orthogonal_reg_active_codes_only    # set this to True if you have a very large codebook, and would only like to enforce the loss on the activated codes per batch
+        )
+        
+        if ckpt_path is not None:
+            self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
+            
+    def encode(self, x):
+        h = self.encoder(x)
+        h = self.quant_conv(h)
+        quant, indices, aux_loss = self.quantize(h)
+        return quant, aux_loss, (None, None, indices)
+    
+    def decode_code(self, code_b):
+        quant_b = self.quantize.get_codes_from_indices(code_b)
+        dec = self.decode(quant_b)
+        return dec
+    
+class LFQModel(VQModel):
+    def __init__(self,
+                 ddconfig,
+                 lossconfig,
+                 n_embed,
+                 embed_dim,
+                 ckpt_path=None,
+                 ignore_keys=[],
+                 image_key="image",
+                 remap=None,
+                 colorize_nlabels=None,
+                 entropy_loss_weight = 0.1,
+                 diversity_gamma = 1.,
+                 monitor=None,
+                 ):
+
+        z_channels = ddconfig["z_channels"]
+        super().__init__(ddconfig,
+                         lossconfig,
+                         n_embed,
+                         embed_dim,
+                         ckpt_path=None,
+                         ignore_keys=ignore_keys,
+                         image_key=image_key,
+                         colorize_nlabels=colorize_nlabels,
+                         monitor=monitor
+                         )
+
+        self.loss.n_classes = n_embed
+        self.vocab_size = n_embed
+
+        self.quantize = LookupFreeQunatizer(
+            dim = embed_dim,
+            codebook_size = n_embed,
+            entropy_loss_weight = entropy_loss_weight,
+            diversity_gamma = diversity_gamma
+        )
+        
+        if ckpt_path is not None:
+            self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
+            
+    def encode(self, x):
+        h = self.encoder(x)
+        h = self.quant_conv(h)
+        quant, indices, aux_loss = self.quantize(h)
+        return quant, aux_loss, (None, None, indices)
+
+    def decode_code(self, code_b):
+        quant_b = self.quantize.indices_to_codes(code_b)
+        dec = self.decode(quant_b)
+        return dec
+    
+
+class FSQModel(VQModel):
+    def __init__(self,
+                 ddconfig,
+                 lossconfig,
+                 n_embed,
+                 embed_dim,
+                 ckpt_path=None,
+                 ignore_keys=[],
+                 image_key="image",
+                 remap=None,
+                 colorize_nlabels=None,
+                 entropy_loss_weight = 0.1,
+                 diversity_gamma = 1.,
+                 monitor=None,
+                 ):
+
+        z_channels = ddconfig["z_channels"]
+        super().__init__(ddconfig,
+                         lossconfig,
+                         n_embed,
+                         embed_dim,
+                         ckpt_path=None,
+                         ignore_keys=ignore_keys,
+                         image_key=image_key,
+                         colorize_nlabels=colorize_nlabels,
+                         monitor=monitor
+                         )
+
+        self.loss.n_classes = n_embed
+        self.vocab_size = n_embed
+
+        self.quantize = FiniteScalarQuantizer(
+            dim = embed_dim,
+            codebook_size = n_embed,
+            entropy_loss_weight = entropy_loss_weight,
+            diversity_gamma = diversity_gamma
+        )
+        
+        if ckpt_path is not None:
+            self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys)
+            
+    def encode(self, x):
+        h = self.encoder(x)
+        h = self.quant_conv(h)
+        quant, indices, aux_loss = self.quantize(h)
+        return quant, aux_loss, (None, None, indices)
+
+    def decode_code(self, code_b):
+        quant_b = self.quantize.indices_to_codes(code_b)
+        dec = self.decode(quant_b)
+        return dec

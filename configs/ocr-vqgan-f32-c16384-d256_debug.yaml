@@ -39,13 +39,13 @@ model:
 data:
   target: main.DataModuleFromConfig
   params:
-    batch_size: 4
-    num_workers: 4
+    batch_size: 17
+    num_workers: 12
     train:
       target: taming.data.custom.CustomOnMemoryTrain
       params:
         training_images_list_file: LSDSQ_480_gray/_LSDSQ_480_gray_img_train_debug.txt
-        size: 480 #기준 사이즈(작으면 확대 크면 크롭)
+        size: 256 #기준 사이즈(작으면 확대 크면 크롭)
         gray: True
         random_crop: True
         augment: True
@@ -53,7 +53,7 @@ data:
       target: taming.data.custom.CustomOnMemoryTest
       params:
         test_images_list_file: LSDSQ_480_gray/_LSDSQ_480_gray_img_test_debug.txt
-        size: 480
+        size: 256
         gray: True
         random_crop: False
         augment: False
@@ -61,7 +61,7 @@ data:
       target: taming.data.custom.CustomOnMemoryTest
       params:
         test_images_list_file: LSDSQ_480_gray/LSDSQ_480_gray_img_test.txt
-        size: 480
+        size: 256
         gray: True
         random_crop: False
         augment: False

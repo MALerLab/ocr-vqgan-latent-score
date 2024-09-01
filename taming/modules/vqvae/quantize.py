@@ -4,6 +4,8 @@ import torch.nn.functional as F
 import numpy as np
 from torch import einsum
 from einops import rearrange
+import torch.distributed as distributed
+from torch.cuda.amp import autocast
 
 
 class VectorQuantizer(nn.Module):
@@ -362,8 +364,8 @@ class EMAVectorQuantizer(nn.Module):
     def __init__(self, n_embed, embedding_dim, beta, decay=0.99, eps=1e-5,
                 remap=None, unknown_index="random"):
         super().__init__()
-        self.codebook_dim = codebook_dim
-        self.num_tokens = num_tokens
+        self.codebook_dim = embedding_dim
+        self.num_tokens = n_embed
         self.beta = beta
         self.embedding = EmbeddingEMA(self.num_tokens, self.codebook_dim, decay, eps)
 

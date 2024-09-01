@@ -457,9 +457,12 @@ if __name__ == "__main__":
                     "target": "pytorch_lightning.loggers.WandbLogger",
                     "params": {
                         "project":opt.project,
+                        "name": nowname,
                         "save_dir": opt.logdir, # Set this to the "--logdir" dir, only trick to make wandb work
                         "offline": opt.debug,
-                        "config": dict(config)
+                        "config": dict(config),
+                        "resume": "must",
+                        "id": "5jqmmxa4",
                     },
                 },
                 "testtube": {
@@ -484,7 +487,7 @@ if __name__ == "__main__":
             "target": "pytorch_lightning.callbacks.ModelCheckpoint",
             "params": {
                 "dirpath": ckptdir,
-                "filename": "epoch={epoch:04}-step={step:07}-val_rec_loss_epoch={val/rec_loss_epoch:.3f}",
+                "filename": "epoch={epoch:04}-step={step:07}-val_rec_loss={"+model.monitor+":.3f}",
                 "auto_insert_metric_name": False,
                 "verbose": True,
                 "save_last": True,
