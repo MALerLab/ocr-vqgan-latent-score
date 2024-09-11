@@ -72,7 +72,11 @@ class VQModel(pl.LightningModule):
         return dec
 
     def decode_code(self, code_b):
-        quant_b = self.quantize.embed_code(code_b)
+        quant_b = self.quantize.embedding(code_b)
+        if quant_b.dim() == 4:
+            quant_b = quant_b.permute(0,3,1,2)
+        elif quant_b.dim() == 3:
+            quant_b = quant_b.permute(0,2,1)
         dec = self.decode(quant_b)
         return dec
 
