@@ -8,7 +8,7 @@ import argparse
 from random import shuffle
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--path", type=str, required=True, default="LSDSQ_480_gray", help="Path to dataset root, containing image directories (train and test)")
+parser.add_argument("--path", type=str, required=True, default="LSDSQ_flattened_240_gray", help="Path to dataset root, containing image directories (train and test)")
 args = parser.parse_args()
 
 if __name__ == '__main__':
@@ -19,7 +19,7 @@ if __name__ == '__main__':
     for split_name, split in splits.items():
         for filename in split:
             # append to txt file
-            with open(os.path.join(path, 'LSDSQ_480_gray_img_'+split_name+'.txt'), 'a') as f:
+            with open(os.path.join(path, 'LSDSQ_flattened_240_gray_img_'+split_name+'.txt'), 'a') as f:
                 f.write(filename + '\n')
             count += 1
-    print(f"Stored {count} images in LSDSQ_480_gray_img_{split_name}.txt")
+    print(f"Stored {count} images in LSDSQ_flattened_240_gray_img_{split_name}.txt")

@@ -1,0 +1,66 @@
+model:
+  base_learning_rate: 4.5e-05
+  target: taming.models.vqgan.EMAVQ
+  params:
+    embed_dim: 256 # quant dim
+    n_embed: 16384 # n_codebook
+    ddconfig:
+      double_z: false
+      z_channels: 256 # enc out channels
+      resolution: 256 # 인풋 이미지 한쪽(가로/세로)길이?
+      in_channels: 1 # enc in ch
+      out_ch: 1 # dec out ch
+      ch: 128 # enc/dec latent ch
+      ch_mult: # 레이어 수(압축률: 2^(len(ch_mult)-1) 2^4=16 -> 코드 하나 커버리지 16*16픽셀
+      - 1
+      - 1
+      - 2
+      - 2
+      - 4
+      num_res_blocks: 2
+      attn_resolutions: # 어텐션 이미지 한쪽 길이?
+      - 16
+      dropout: 0.0
+    lossconfig:
+      target: taming.modules.losses.vqperceptual.VQLPIPSWithDiscriminatorOCR
+      params:
+        disc_conditional: false
+        disc_in_channels: 1
+        disc_start: 1000000
+        disc_weight: 0.75
+        disc_num_layers: 2
+        codebook_weight: 1.0
+
+        perceptual_weight: 0.2
+        ocr_perceptual_weight: 1.0
+    monitor: val/rec_loss_epoch
+
+data:
+  target: main.DataModuleFromConfig
+  params:
+    batch_size: 16
+    num_workers: 4
+    train:
+      target: taming.data.custom.CustomOnMemoryTrain
+      params:
+        training_images_list_file: LSDSQ_flattened_240_gray/LSDSQ_flattened_240_gray_img_train.txt
+        size: 240 #기준 사이즈(작으면 확대 크면 크롭)
+        gray: True
+        random_crop: True
+        augment: True
+    validation:
+      target: taming.data.custom.CustomOnMemoryTest
+      params:
+        test_images_list_file: LSDSQ_flattened_240_gray/LSDSQ_flattened_240_gray_img_test.txt
+        size: 240
+        gray: True
+        random_crop: False
+        augment: False
+    test:
+      target: taming.data.custom.CustomOnMemoryTest
+      params:
+        test_images_list_file: LSDSQ_flattened_240_gray/LSDSQ_flattened_240_gray_img_test.txt
+        size: 240
+        gray: True
+        random_crop: False
+        augment: False

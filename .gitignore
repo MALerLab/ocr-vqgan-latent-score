@@ -16,5 +16,6 @@ taming/modules/autoencoder/lpips/vgg.pth
 taming/modules/autoencoder/ocr_perceptual/craft_mlt_25k.pth
 LSDSQ_480_gray
 LSDSQ_240_gray
+LSDSQ_flattened_240_gray
 logs
 ocr-vqgan-f16-c16384-d256-pretrained
