@@ -51,6 +51,7 @@ if __name__ == "__main__":
     resized_image_path = image_path.with_stem(image_path.stem + "_128")
     image.save(resized_image_path)
     image = tf(image).cuda()
+    image = image.to(torch.float32) * 2.0 - 1.0
     for i in range(16):
       x_shifted_img = image[...,i:image.shape[-1]-15+i]
       y_shifted_imgs = []

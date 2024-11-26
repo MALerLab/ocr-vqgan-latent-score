@@ -35,6 +35,7 @@ if __name__ == "__main__":
     print("Encoding : ", image_path)
     image = PIL.Image.open(image_path)
     image = tf(image).unsqueeze(0).cuda()
+    image = image.to(torch.float32) * 2.0 - 1.0
     quant, emb_loss, info = model.encode(image)
     info = info[2].view(quant.shape[0],quant.shape[-2],quant.shape[-1])
     
