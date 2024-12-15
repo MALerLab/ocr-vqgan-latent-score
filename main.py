@@ -461,8 +461,8 @@ if __name__ == "__main__":
                         "save_dir": opt.logdir, # Set this to the "--logdir" dir, only trick to make wandb work
                         "offline": opt.debug,
                         "config": dict(config),
-                        # "resume": "must",
-                        # "id": "5jqmmxa4",
+                        "resume": "must",
+                        "id": "ya54kdmm",
                     },
                 },
                 "testtube": {
