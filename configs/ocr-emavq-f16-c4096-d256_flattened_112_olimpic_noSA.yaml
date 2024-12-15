@@ -19,7 +19,7 @@ model:
       - 4
       num_res_blocks: 2
       attn_resolutions: # 셀프 어텐션이 일어나는 해상도(conv stack 안에서)
-      - 16
+      - 8 # 8은 f16에 등장 X 안걸림 : No Self-Attention
       dropout: 0.0
     lossconfig:
       target: taming.modules.losses.vqperceptual.VQLPIPSWithDiscriminatorOCR

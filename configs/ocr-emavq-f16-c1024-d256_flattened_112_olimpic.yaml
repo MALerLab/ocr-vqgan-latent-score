@@ -3,7 +3,7 @@ model:
   target: taming.models.vqgan.EMAVQ
   params:
     embed_dim: 256 # quant dim
-    n_embed: 4096 # n_codebook
+    n_embed: 1024 # n_codebook
     ddconfig:
       double_z: false
       z_channels: 256 # enc out channels
